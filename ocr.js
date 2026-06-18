@@ -105,8 +105,9 @@ const OCREngine = (() => {
     };
 
     // ── Email ────────────────────────────────────────────────
-    const emailMatch = fullText.match(/[\w.+%-]+@[\w.-]+\.[a-zA-Z]{2,}/);
-    if (emailMatch) result.email = emailMatch[0].trim();
+    // Broad regex: captures most real-world email formats on visiting cards
+    const emailMatch = fullText.match(/[\w._%+\-]+@[\w.\-]+\.[a-zA-Z]{2,}/i);
+    if (emailMatch) result.email = emailMatch[0].trim().toLowerCase();
 
     // ── Website ──────────────────────────────────────────────
     const webMatch = fullText.match(/(?:www\.|https?:\/\/)[^\s,<>"]+/i);
@@ -196,7 +197,7 @@ const OCREngine = (() => {
 
     // Strategy 2: ALL-CAPS candidate lines
     const capsLines = candidates.filter(line => {
-      const stripped = line.replace(/[^a-zA-Z\s&.,]/g, '').trim();
+      const stripped = line.replace(/[^a-zA-Z\s&.,-]/g, '').trim();
       return stripped.length > 3
           && stripped === stripped.toUpperCase()
           && !/^(Mr|Mrs|Ms|Dr|Prof)/i.test(line);
@@ -219,9 +220,13 @@ const OCREngine = (() => {
       if (line === result.designation) return false;
       if (isDesignation(line))         return false;
       if (capsLines.includes(line))    return false; // already used as company
-      // Must start with a capital letter word
-      return /^[A-Z][a-z]/.test(line)
-          || /^(Mr\.|Mrs\.|Ms\.|Dr\.|Prof\.)/.test(line);
+      
+      const words = line.trim().split(/\s+/);
+      if (words.length > 4 || words.length < 1) return false; // Name is usually 1-4 words
+      if (/\d/.test(line)) return false; // typically no digits in a name
+
+      // Must start with letter, allow initials
+      return /^[A-Z]/i.test(line);
     });
 
     if (nameCandidates[0]) result.name  = nameCandidates[0];

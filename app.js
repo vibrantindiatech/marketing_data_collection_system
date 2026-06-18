@@ -302,16 +302,9 @@ const App = (() => {
     document.querySelector('.confirm-header h2').textContent = 'Confirm Data';
     document.querySelector('.confirm-header p').textContent = 'Please review and edit the scanned details';
 
-    // Populate editable fields
-    const fields = ['name', 'company', 'phone', 'email', 'website'];
-    fields.forEach(field => {
-      const el = document.getElementById(`field-${field}`);
-      if (el) el.value = result ? (result[field] || '') : '';
-    });
-
-    // New fields
-    const extraFields = ['name2', 'phone2', 'address'];
-    extraFields.forEach(field => {
+    // Populate ALL editable fields from OCR result
+    const allFields = ['name', 'name2', 'designation', 'company', 'phone', 'phone2', 'email', 'website', 'address'];
+    allFields.forEach(field => {
       const el = document.getElementById(`field-${field}`);
       if (el) el.value = result ? (result[field] || '') : '';
     });
@@ -342,8 +335,8 @@ const App = (() => {
     document.querySelector('.confirm-header h2').textContent = 'Manual Entry';
     document.querySelector('.confirm-header p').textContent = 'Fill details manually';
     
-    const fields = ['name', 'company', 'phone', 'email', 'website'];
-    fields.forEach(field => {
+    const allFields = ['name', 'name2', 'designation', 'company', 'phone', 'phone2', 'email', 'website', 'address'];
+    allFields.forEach(field => {
       const el = document.getElementById(`field-${field}`);
       if (el) el.value = '';
     });
@@ -354,14 +347,15 @@ const App = (() => {
   async function saveCardData() {
     showLoader('Saving to Drive & Excel...');
     try {
-      const fields = ['name', 'company', 'phone', 'email', 'website'];
+      // Collect ALL fields from the form
+      const allFields = ['name', 'name2', 'designation', 'company', 'phone', 'phone2', 'email', 'website', 'address'];
       const rowData = { city: state.city === 'indore' ? 'Indore' : 'Mumbai' };
 
       const now = new Date();
       rowData['date'] = now.toLocaleDateString('en-IN');
       rowData['time'] = now.toLocaleTimeString('en-IN');
 
-      fields.forEach(f => {
+      allFields.forEach(f => {
         const el = document.getElementById(`field-${f}`);
         rowData[f] = el ? el.value.trim() : '';
       });
@@ -467,9 +461,14 @@ const App = (() => {
         await batchUploadPhotos(files);
       }
     } else if (mode === 'card') {
-      // Put all cards in the queue and start processing the first one
-      state.pendingCards = files;
-      processNextPendingCard();
+      if (files.length === 1) {
+        // Single card flow with manual review
+        state.pendingCards = [];
+        await processSingleUpload(files[0], mode);
+      } else {
+        // Auto-scan and upload bulk cards seamlessly
+        await batchUploadCards(files);
+      }
     }
   }
 
@@ -518,6 +517,66 @@ const App = (() => {
       showToast(`⚠️ Uploaded ${successCount}/${total} photos.`, 'warning');
     }
     showScreen('dashboard');
+  }
+
+  async function batchUploadCards(files) {
+    if (!DriveAPI.isConfigured()) {
+      showToast('⚠️ Please connect Drive first to batch upload cards.', 'error');
+      return;
+    }
+    
+    showScreen('dashboard');
+    const total = files.length;
+    let successCount = 0;
+    
+    showLoader(`Initializing OCR Scanner...`);
+    try {
+      await OCREngine.initialize();
+    } catch(e) {
+      hideLoader();
+      showToast('⚠️ OCR Init failed', 'error');
+      return;
+    }
+
+    for (let i = 0; i < total; i++) {
+      showLoader(`Scanning & Saving Card ${i + 1} of ${total}...`);
+      try {
+        const file = files[i];
+        const dataUrl = await fileToDataUrl(file);
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filename = `${state.city}_card_${timestamp}_${i+1}.jpg`;
+        
+        // Extract OCR directly without showing review UI
+        const result = await OCREngine.scanCard(dataUrl, () => {});
+        
+        const rowData = { city: state.city === 'indore' ? 'Indore' : 'Mumbai' };
+        const now = new Date();
+        rowData['date'] = now.toLocaleDateString('en-IN');
+        rowData['time'] = now.toLocaleTimeString('en-IN');
+        
+        const allFields = ['name', 'name2', 'designation', 'company', 'phone', 'phone2', 'email', 'website', 'address'];
+        allFields.forEach(f => {
+          rowData[f] = result[f] || '';
+        });
+
+        // Upload Image
+        const uploadResult = await DriveAPI.storePhoto(file, state.city, 'visitingCards', filename);
+        rowData.photoLink = uploadResult.webViewLink || '';
+
+        // Save Excel
+        await DriveAPI.appendToExcel(state.city, rowData);
+        successCount++;
+      } catch (err) {
+        console.error('Batch card error:', err);
+      }
+    }
+
+    hideLoader();
+    if (successCount === total) {
+      showToast(`✅ Scanned & Saved ${total} cards!`, 'success');
+    } else {
+      showToast(`⚠️ Saved ${successCount}/${total} cards.`, 'warning');
+    }
   }
 
   async function processNextPendingCard() {

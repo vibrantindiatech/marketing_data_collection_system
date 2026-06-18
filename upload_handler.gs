@@ -16,6 +16,12 @@ var FOLDER_NAMES = {
   MUMBAI_VISITING_CARDS: 'Mumbai Visiting Cards',
 };
 
+// Full column headers — must match appendRow order below
+var EXCEL_HEADERS = [
+  'Date', 'Time', 'Name', 'Name 2', 'Designation',
+  'Company', 'Phone', 'Phone 2', 'Email', 'Website', 'Address', 'Photo Link'
+];
+
 // ─── Folder lookup (dynamic, no hardcoded IDs) ───────────────────
 function getCityFolder(city, type) {
   var parentFolder;
@@ -42,6 +48,40 @@ function getCityFolder(city, type) {
 
   // Create if missing
   return parentFolder.createFolder(folderName);
+}
+
+// ─── Find or create the city spreadsheet ─────────────────────────
+function getOrCreateSpreadsheet(city) {
+  var fileName  = city === 'indore' ? 'Indore_Data' : 'Mumbai_Data';
+  var sheetName = city === 'indore' ? 'Indore Visiting Cards' : 'Mumbai Visiting Cards';
+  var folder    = getCityFolder(city, 'visitingCards');
+
+  var files = folder.getFilesByName(fileName);
+  var ss;
+
+  if (files.hasNext()) {
+    ss = SpreadsheetApp.open(files.next());
+  } else {
+    // Create new spreadsheet with headers
+    ss = SpreadsheetApp.create(fileName);
+    DriveApp.getFileById(ss.getId()).moveTo(folder);
+    var sheet = ss.getActiveSheet();
+    sheet.setName(sheetName);
+    sheet.appendRow(EXCEL_HEADERS);
+    sheet.getRange(1, 1, 1, EXCEL_HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  // Ensure the named sheet exists
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    sheet.appendRow(EXCEL_HEADERS);
+    sheet.getRange(1, 1, 1, EXCEL_HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  return { ss: ss, sheet: sheet, fileName: fileName, sheetName: sheetName };
 }
 
 // ─── CORS JSON response ──────────────────────────────────────────
@@ -106,109 +146,92 @@ function handlePhotoUpload(payload) {
 }
 
 // ─── Excel Append ────────────────────────────────────────────────
+// rowData fields: name, name2, designation, company, phone, phone2, email, website, address, photoLink
 function handleExcelAppend(payload) {
   var city    = (payload.city || 'indore').toLowerCase();
   var rowData = payload.rowData || {};
 
-  var fileName  = city === 'indore' ? 'Indore_Data' : 'Mumbai_Data';
-  var sheetName = city === 'indore' ? 'Indore Visiting Cards' : 'Mumbai Visiting Cards';
-  var folder    = getCityFolder(city, 'visitingCards');
+  var result = getOrCreateSpreadsheet(city);
+  var sheet  = result.sheet;
 
-  // Find or create spreadsheet
-  var files = folder.getFilesByName(fileName);
-  var ss;
-
-  if (files.hasNext()) {
-    ss = SpreadsheetApp.open(files.next());
-  } else {
-    ss = SpreadsheetApp.create(fileName);
-    DriveApp.getFileById(ss.getId()).moveTo(folder);
-    var sheet = ss.getActiveSheet();
-    sheet.setName(sheetName);
-    sheet.appendRow([
-      'Date', 'Time', 'Name', 'Company', 'Phone',
-      'Email', 'Website', 'Photo Link'
-    ]);
-    sheet.getRange(1, 1, 1, 8).setFontWeight('bold');
-    sheet.setFrozenRows(1);
-  }
-
-  var sheet = ss.getSheetByName(sheetName) || ss.getActiveSheet();
-  var now   = new Date();
-  var tz    = Session.getScriptTimeZone();
+  var now = new Date();
+  var tz  = Session.getScriptTimeZone();
 
   sheet.appendRow([
     Utilities.formatDate(now, tz, 'dd/MM/yyyy'),
     Utilities.formatDate(now, tz, 'HH:mm:ss'),
-    rowData.name        || '',
-    rowData.company     || '',
-    rowData.phone       || '',
-    rowData.email       || '',
-    rowData.website     || '',
-    rowData.photoLink   || '',
+    rowData.name         || '',
+    rowData.name2        || '',
+    rowData.designation  || '',
+    rowData.company      || '',
+    rowData.phone        || '',
+    rowData.phone2       || '',
+    rowData.email        || '',
+    rowData.website      || '',
+    rowData.address      || '',
+    rowData.photoLink    || '',
   ]);
 
-  Logger.log('✅ Row appended to ' + fileName + ' (' + city + ')');
+  Logger.log('✅ Row appended to ' + result.fileName + ' (' + city + ')');
 
   return corsResponse({
     status:        'ok',
-    spreadsheetId: ss.getId(),
-    sheetName:     sheetName,
+    spreadsheetId: result.ss.getId(),
+    sheetName:     result.sheetName,
     rowsTotal:     sheet.getLastRow(),
   });
 }
 
-// ─── Get Excel URL ───────────────────────────────────────────────
+// ─── Get Excel Download URL ──────────────────────────────────────
+// Creates the spreadsheet if it doesn't exist yet (so download never fails)
 function handleGetExcelUrl(payload) {
-  var city = (payload.city || 'indore').toLowerCase();
-  var fileName = city === 'indore' ? 'Indore_Data' : 'Mumbai_Data';
-  var folder = getCityFolder(city, 'visitingCards');
-  
-  var files = folder.getFilesByName(fileName);
-  if (files.hasNext()) {
-    var ss = SpreadsheetApp.open(files.next());
-    return corsResponse({
-      status: 'ok',
-      url: 'https://docs.google.com/spreadsheets/d/' + ss.getId() + '/export?format=xlsx'
-    });
-  } else {
-    return corsResponse({ status: 'error', message: 'No Excel file exists yet for ' + city });
-  }
+  var city   = (payload.city || 'indore').toLowerCase();
+  var result = getOrCreateSpreadsheet(city);  // always returns a valid ss
+
+  var exportUrl = 'https://docs.google.com/spreadsheets/d/' +
+    result.ss.getId() + '/export?format=xlsx';
+
+  return corsResponse({
+    status: 'ok',
+    url:    exportUrl,
+  });
 }
 
-// ─── Replace Excel ───────────────────────────────────────────────
+// ─── Replace Entire Excel Sheet ──────────────────────────────────
+// sheetData is a 2D array of rows
 function handleReplaceExcel(payload) {
-  var city = (payload.city || 'indore').toLowerCase();
+  var city      = (payload.city || 'indore').toLowerCase();
   var sheetData = payload.sheetData; // Expecting a 2D array
-  
+
   if (!sheetData || !sheetData.length) {
     return corsResponse({ status: 'error', message: 'No sheetData provided' });
   }
 
-  var fileName  = city === 'indore' ? 'Indore_Data' : 'Mumbai_Data';
-  var sheetName = city === 'indore' ? 'Indore Visiting Cards' : 'Mumbai Visiting Cards';
-  var folder    = getCityFolder(city, 'visitingCards');
+  var result = getOrCreateSpreadsheet(city);
+  var sheet  = result.sheet;
 
-  // Find or create spreadsheet
-  var files = folder.getFilesByName(fileName);
-  var ss;
-  if (files.hasNext()) {
-    ss = SpreadsheetApp.open(files.next());
-  } else {
-    ss = SpreadsheetApp.create(fileName);
-    DriveApp.getFileById(ss.getId()).moveTo(folder);
+  // Find the max column count across all rows (prevents crash on jagged arrays)
+  var maxCols = 1;
+  for (var i = 0; i < sheetData.length; i++) {
+    if (sheetData[i].length > maxCols) maxCols = sheetData[i].length;
   }
 
-  var sheet = ss.getSheetByName(sheetName);
-  if (!sheet) {
-    sheet = ss.insertSheet(sheetName);
-  }
+  // Pad all rows to maxCols so setValues doesn't throw
+  var paddedData = sheetData.map(function(row) {
+    var r = row.slice(); // copy
+    while (r.length < maxCols) r.push('');
+    return r;
+  });
 
   // Overwrite everything
   sheet.clear();
-  sheet.getRange(1, 1, sheetData.length, sheetData[0].length).setValues(sheetData);
-  sheet.getRange(1, 1, 1, sheetData[0].length).setFontWeight('bold');
+  sheet.getRange(1, 1, paddedData.length, maxCols).setValues(paddedData);
+
+  // Re-apply header formatting if first row looks like headers
+  sheet.getRange(1, 1, 1, maxCols).setFontWeight('bold');
   sheet.setFrozenRows(1);
 
-  return corsResponse({ status: 'ok', message: 'Replaced successfully' });
+  Logger.log('✅ Excel replaced for ' + city + ' (' + paddedData.length + ' rows)');
+
+  return corsResponse({ status: 'ok', message: 'Replaced successfully', rows: paddedData.length });
 }
