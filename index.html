@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="Visiting Card Management System for Indore & Mumbai field agents" />
+  <title>CardCapture — Indore & Mumbai</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!--  SCREEN 1 — START                                     -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <section data-screen="start" id="screen-start">
+    <div class="start-content">
+      <div class="app-logo">🪪</div>
+      <div>
+        <h1 class="app-name">CardCapture</h1>
+        <p class="app-tagline">Smart visiting card management for your field team</p>
+      </div>
+      <div class="start-features">
+        <div class="feature-pill"><span>📍</span> Indore & Mumbai locations</div>
+        <div class="feature-pill"><span>📷</span> Camera + photo upload</div>
+        <div class="feature-pill"><span>🤖</span> Auto OCR card scanning</div>
+        <div class="feature-pill"><span>☁️</span> Google Drive sync</div>
+        <div class="feature-pill"><span>📊</span> Auto Excel generation</div>
+      </div>
+      <button class="btn btn-primary btn-lg btn-full" id="btn-start">START →</button>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!--  SCREEN 2 — LOCATION SELECTION                        -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <section data-screen="location" id="screen-location">
+    <div class="location-header safe-top">
+      <h1>Select Your Location</h1>
+      <p>Choose the city you are currently operating from</p>
+    </div>
+    <div class="location-cards">
+      <button class="city-card city-card-indore" id="btn-indore">
+        <div class="city-card-emoji">🏙️</div>
+        <div class="city-card-name">Indore</div>
+        <div class="city-card-sub">Madhya Pradesh</div>
+        <span class="city-card-arrow">›</span>
+      </button>
+      <button class="city-card city-card-mumbai" id="btn-mumbai">
+        <div class="city-card-emoji">🌊</div>
+        <div class="city-card-name">Mumbai</div>
+        <div class="city-card-sub">Maharashtra</div>
+        <span class="city-card-arrow">›</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!--  SCREEN 3 — DASHBOARD                                 -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <section data-screen="dashboard" id="screen-dashboard">
+    <!-- Sticky Header -->
+    <div class="dashboard-header">
+      <div class="dashboard-header-left">
+        <div>
+          <div class="header-title">Active Location</div>
+          <div class="header-city-badge">
+            <span class="city-emoji">🏙️</span>
+            <span class="city-name">Indore</span>
+          </div>
+        </div>
+      </div>
+      <button id="top-camera-icon" title="Quick Camera">📷</button>
+    </div>
+
+    <!-- Dashboard Body -->
+    <div class="dashboard-body">
+
+      <!-- Drive Status -->
+      <div class="drive-bar">
+        <div class="drive-icon">☁️</div>
+        <div class="drive-info">
+          <h4>Google Drive</h4>
+          <p id="drive-status">Not connected</p>
+        </div>
+        <button id="btn-connect-drive">🔗 Connect Drive</button>
+      </div>
+
+      <!-- Card prompt banner (shows after photo taken) -->
+      <div id="card-prompt-banner">
+        <div class="card-prompt-icon">🪪</div>
+        <div class="card-prompt-text">
+          <h4>Next: Add Visiting Card</h4>
+          <p>Scan or upload a visiting card below</p>
+        </div>
+      </div>
+
+      <!-- Section: General Photo -->
+      <div class="section-label">📸 General Photo</div>
+      <div class="action-grid">
+        <button class="action-btn action-btn-primary" id="btn-camera-photo">
+          <div class="action-btn-icon">📷</div>
+          <div class="action-btn-label">Click Photo</div>
+          <div class="action-btn-sub">Open camera</div>
+        </button>
+        <button class="action-btn" id="btn-upload-photo">
+          <div class="action-btn-icon">📁</div>
+          <div class="action-btn-label">Choose Photo</div>
+          <div class="action-btn-sub">From gallery</div>
+        </button>
+      </div>
+
+      <!-- Section: Visiting Card -->
+      <div class="section-label">🪪 Visiting Card</div>
+      <div class="action-grid">
+        <button class="action-btn action-btn-primary" id="btn-camera-card">
+          <div class="action-btn-icon">📸</div>
+          <div class="action-btn-label">Scan Card</div>
+          <div class="action-btn-sub">Click & auto-scan</div>
+        </button>
+        <button class="action-btn" id="btn-upload-card">
+          <div class="action-btn-icon">📂</div>
+          <div class="action-btn-label">Upload Card</div>
+          <div class="action-btn-sub">From gallery</div>
+        </button>
+        <button class="action-btn" id="btn-manual-card" style="grid-column: span 2;">
+          <div class="action-btn-icon">✍️</div>
+          <div class="action-btn-label">Manual Entry</div>
+          <div class="action-btn-sub">If you don't have a card</div>
+        </button>
+      </div>
+
+      <!-- Section: Data Management -->
+      <div class="section-label">📊 Data Management</div>
+      <div class="action-grid" style="margin-bottom: 2rem;">
+        <button class="action-btn" id="btn-download-excel">
+          <div class="action-btn-icon">⬇️</div>
+          <div class="action-btn-label">Download Excel</div>
+          <div class="action-btn-sub">From Drive</div>
+        </button>
+        <button class="action-btn" id="btn-replace-excel">
+          <div class="action-btn-icon">⬆️</div>
+          <div class="action-btn-label">Upload & Replace</div>
+          <div class="action-btn-sub">Overwrite Drive</div>
+        </button>
+      </div>
+      <input type="file" id="file-input-excel" accept=".xlsx, .xls" style="display:none" />
+
+      <!-- Change Location -->
+      <button class="btn-ghost" id="btn-go-location">⟵ Change Location</button>
+
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!--  SCREEN 4 — CAMERA                                    -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <section data-screen="camera" id="screen-camera">
+    <video id="camera-video" playsinline autoplay muted></video>
+    <div id="camera-flash"></div>
+
+    <!-- Visiting card guide box -->
+    <div id="camera-guide"></div>
+
+    <div class="camera-overlay">
+      <!-- Top bar -->
+      <div class="camera-top-bar">
+        <button class="camera-icon-btn" id="btn-camera-back">✕</button>
+        <span id="camera-title">Take Photo</span>
+        <button class="camera-icon-btn" id="btn-switch-camera">🔄</button>
+      </div>
+
+      <!-- Bottom controls -->
+      <div class="camera-bottom-bar">
+        <div style="width:44px"></div>
+        <button id="btn-capture" title="Capture"></button>
+        <div style="width:44px"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!--  SCREEN 5 — PHOTO REVIEW                              -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <section data-screen="photo-review" id="screen-photo-review">
+    <div class="review-container">
+      <div class="review-image-wrap">
+        <img id="review-img" src="" alt="Captured photo" />
+      </div>
+      <div class="review-info safe-bottom">
+        <div>
+          <h2 id="review-title">Photo Captured!</h2>
+          <p id="review-subtitle">Review the photo and tap Save to continue.</p>
+        </div>
+        <div class="review-actions">
+          <button class="btn btn-secondary" id="btn-review-retake">🔄 Retake</button>
+          <button class="btn btn-primary" id="btn-review-confirm">✓ Save & Continue</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!--  SCREEN 6 — CARD REVIEW                               -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <section data-screen="card-review" id="screen-card-review">
+    <div class="card-review-wrap">
+      <div class="card-review-image-wrap">
+        <img id="card-review-img" src="" alt="Visiting card" />
+        <div class="card-guide-label">🪪 Visiting Card Preview</div>
+      </div>
+      <div class="card-review-actions safe-bottom">
+        <h2>Visiting Card Ready?</h2>
+        <p>Make sure the card text is clearly visible before scanning</p>
+        <div class="review-action-row">
+          <button class="btn btn-secondary" id="btn-card-retake">🔄 Retake</button>
+          <button class="btn btn-primary" id="btn-card-process">🤖 Scan Card</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!--  SCREEN 7 — OCR PROCESSING                            -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <section data-screen="ocr" id="screen-ocr">
+    <div class="ocr-content">
+      <div class="ocr-animation">
+        <div class="ocr-scanner">
+          <div class="ocr-card-icon">🪪</div>
+        </div>
+      </div>
+      <div class="ocr-text-container">
+        <p id="ocr-status">Initializing OCR engine...</p>
+        <div class="progress-track">
+          <div id="ocr-progress-bar"></div>
+        </div>
+        <p id="ocr-progress-text">0%</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!--  SCREEN 8 — CONFIRM / EDIT FIELDS                     -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <section data-screen="confirm" id="screen-confirm">
+    <div class="confirm-scroll">
+      <div class="confirm-header">
+        <img id="confirm-card-img" src="" alt="Card" />
+        <div>
+          <h2>Review Extracted Data</h2>
+          <p>Edit any field if needed, then save</p>
+        </div>
+      </div>
+
+      <div class="fields-grid">
+        <div class="field-group">
+          <label class="field-label" for="field-name">Name</label>
+          <input class="field-input" id="field-name" type="text" placeholder="Full Name" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="field-company">Company</label>
+          <input class="field-input" id="field-company" type="text" placeholder="Company Name" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="field-phone">Phone</label>
+          <input class="field-input" id="field-phone" type="tel" placeholder="+91 XXXXX XXXXX" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="field-email">Email</label>
+          <input class="field-input" id="field-email" type="email" placeholder="email@example.com" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="field-website">Website</label>
+          <input class="field-input" id="field-website" type="url" placeholder="www.example.com" />
+        </div>
+      </div>
+    </div>
+
+    <div class="confirm-actions safe-bottom">
+      <button class="btn btn-secondary" id="btn-rescan">↩ Re-scan</button>
+      <button class="btn btn-primary" id="btn-save-card">💾 Save to Drive & Excel</button>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!--  OVERLAYS                                             -->
+  <!-- ══════════════════════════════════════════════════════ -->
+
+  <!-- Resume Session Overlay -->
+  <div id="resume-overlay">
+    <div class="resume-card">
+      <div class="resume-icon">⏸️</div>
+      <h2>Resume Session?</h2>
+      <p>You have an unfinished session. Would you like to continue where you left off?</p>
+      <div class="resume-meta">
+        <div class="resume-meta-row">
+          <span>City</span>
+          <span id="resume-city">—</span>
+        </div>
+        <div class="resume-meta-row">
+          <span>Last Step</span>
+          <span id="resume-step">—</span>
+        </div>
+      </div>
+      <div class="resume-actions">
+        <button class="btn btn-primary btn-full" id="btn-resume">▶ Continue Session</button>
+        <button class="btn btn-secondary btn-full" id="btn-fresh-start">🔄 Start Fresh</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Overlay -->
+  <div id="success-overlay">
+    <div class="success-icon">✅</div>
+    <div class="success-text">Saved Successfully!</div>
+    <div class="success-sub">Card & data stored in Drive and Excel</div>
+  </div>
+
+  <!-- Global Loader -->
+  <div id="global-loader">
+    <div class="loader-spinner"></div>
+    <p id="loader-text">Please wait...</p>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Hidden File Input -->
+  <input type="file" id="file-input-hidden" accept="image/*" multiple style="display:none" />
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!--  SCRIPTS                                              -->
+  <!-- ══════════════════════════════════════════════════════ -->
+
+  <!-- Google Identity Services (OAuth) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- Tesseract.js — In-browser OCR -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+  <!-- SheetJS — Excel in browser -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+  <!-- App Modules (order matters) -->
+  <script src="config.js"></script>
+  <script src="session.js"></script>
+  <script src="excel.js"></script>
+  <script src="ocr.js"></script>
+  <script src="drive.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
