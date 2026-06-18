@@ -297,7 +297,7 @@ const App = (() => {
     }
   }
 
-  function showConfirmScreen(result) {
+  async function showConfirmScreen(result) {
     document.getElementById('confirm-card-img').style.display = 'block';
     document.querySelector('.confirm-header h2').textContent = 'Confirm Data';
     document.querySelector('.confirm-header p').textContent = 'Please review and edit the scanned details';
@@ -308,6 +308,25 @@ const App = (() => {
       const el = document.getElementById(`field-${field}`);
       if (el) el.value = result ? (result[field] || '') : '';
     });
+
+    // New fields
+    const extraFields = ['name2', 'phone2', 'address'];
+    extraFields.forEach(field => {
+      const el = document.getElementById(`field-${field}`);
+      if (el) el.value = result ? (result[field] || '') : '';
+    });
+
+    // Logo preview
+    const logoImg = document.getElementById('logo-preview');
+    if (logoImg && state.capturedCard) {
+      const logoDataUrl = await OCREngine.extractLogoFromImage(state.capturedCard.dataUrl);
+      if (logoDataUrl) {
+        logoImg.src = logoDataUrl;
+        logoImg.style.display = 'inline-block';
+      } else {
+        logoImg.style.display = 'none';
+      }
+    }
 
     if (state.capturedCard) {
       document.getElementById('confirm-card-img').src = state.capturedCard.dataUrl;
